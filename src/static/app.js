@@ -20,11 +20,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        const participantItems = details.participants.length
+          ? details.participants.map((participant) => `<li>${participant} <button class="delete-participant" data-activity="${name}" data-email="${participant}" aria-label="Unregister ${participant}">×</button></li>`).join("")
+          : "<li>No participants yet</li>";
+
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants">
+            <h5>Participants</h5>
+            <ul class="participants-list">
+              ${participantItems}
+            </ul>
+          </div>
         `;
 
         activitiesList.appendChild(activityCard);
@@ -62,6 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities(); // Refresh the activities list
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
@@ -83,4 +94,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Initialize app
   fetchActivities();
+
+  // Add event listeners for delete buttons
+  document.addEventListener('click', async (e) => {
+    if (e.target.classList.contains('delete-participant')) {
+      const activity = e.target.dataset.activity;
+      const email = e.target.dataset.email;
+
+      try {
+        const response = await fetch(
+          `/activities/${encodeURIComponent(activity)}/signup?email=${encodeURIComponent(email)}`,
+          {
+            method: 'DELETE',
+          }
+        );
+
+        if (response.ok) {
+          fetchActivities(); // Refresh the activities list
+        } else {
+          const result = await response.json();
+          alert(result.detail || 'Failed to unregister participant');
+        }
+      } catch (error) {
+        alert('Error unregistering participant. Please try again.');
+        console.error('Error:', error);
+      }
+    }
+  });
 });
